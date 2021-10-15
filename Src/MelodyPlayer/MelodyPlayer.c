@@ -10,13 +10,16 @@
 #include "SineGen.h"
 #include "main.h"
 #include "Utilities.h"
+#include "GPIO.h"
 
-static uint32 Bpm = 555*4;
+static uint32 Bpm;
 static uint32 NoteCounter;
 static dtState State;
 static dtMelody CurrentMelody;
 static uint32 Time;
 static uint32 Timeout;
+static uint8 PrevNote;
+static uint8 Led;
 
 void MelodyPlayer_Task(void);
 void MelodyPlayer_Start(dtMelody melody);
@@ -38,6 +41,23 @@ void MelodyPlayer_Task(void)
 			Timeout = TimeoutFinder();
 			NoteCounter++;
 			State = Wait;
+
+			if(PrevNote != CurrentMelody.Notes[NoteCounter].MusicNote)
+			{
+			    PrevNote = CurrentMelody.Notes[NoteCounter].MusicNote;
+			    if(Led == 0) Led = 1;
+			    else Led = 0;
+			}
+			if(Led == 0)
+            {
+                GPIO_Set(PortA_0, Clear);
+                GPIO_Set(PortA_1, Set);
+            }
+            else
+            {
+                GPIO_Set(PortA_0, Set);
+                GPIO_Set(PortA_1, Clear);
+            }
 		}
 		else
 		{
@@ -49,6 +69,8 @@ void MelodyPlayer_Task(void)
 		{
 			SineGen_Stop();
 			State = SilentWait;
+            GPIO_Set(PortA_0, Clear);
+            GPIO_Set(PortA_1, Clear);
 		}
 		break;
 	case SilentWait:
