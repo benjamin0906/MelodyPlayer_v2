@@ -83,6 +83,7 @@ void MelodyPlayer_Start(dtMelody melody)
 void MelodyPlayer_Stop(void)
 {
     SineGen_Stop();
+    LightPlayer_NoteStop();
 	State = Idle;
 }
 
