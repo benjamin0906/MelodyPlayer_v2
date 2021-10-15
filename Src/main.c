@@ -17,14 +17,75 @@
  ******************************************************************************
  */
 
-#include <stdint.h>
+#include "RCC.h"
+#include "DAC.h"
+#include "Pwr.h"
+#include "GPIO.h"
+#include "BasicTIM.h"
+#include "MelodyPlayer.h"
+#include "Melodies.h"
+#include "SineGen.h"
 
 #if !defined(__SOFT_FP__) && defined(__ARM_FP)
   #warning "FPU is not initialized, but the project is compiling for an FPU. Please initialize the FPU before use."
 #endif
 
+static uint32 SysTick;
+
+void SysTick_Inc(void)
+{
+    SysTick++;
+}
+
+uint32 GetTicks(void)
+{
+    return SysTick;
+}
+
 int main(void)
 {
+    asm("  LDR.W   R0, =0xE000ED88");
+    asm("LDR     R1, [R0]");
+    asm("ORR     R1, R1, #(0xF << 20)");
+    asm("STR     R1, [R0]");
+    RCC_ClockEnable(RCC_GPIOA, Enable);
+    RCC_ClockEnable(RCC_GPIOB, Enable);
+    RCC_ClockEnable(RCC_GPIOC, Enable);
+    RCC_ClockEnable(RCC_PWR, Enable);
+    RCC_ClockEnable(RCC_FLASH, Enable);
+    RCC_ClockEnable(RCC_TIM7, Enable);
+    RCC_ClockEnable(RCC_TIM6, Enable);
+    RCC_ClockEnable(RCC_DMA1, Enable);
+    RCC_ClockEnable(RCC_DAC, Enable);
+
+    dtRccInitConfig RCCConf = {.Clock = 80000000, .AHB_Presc = AHB_Presc1, .APB1_Presc = APB_Presc1, .CrystalOrInternal = Internal, .PLL_QDiv = QDiv_4};
+    dtDACConf Config = {.Channel = Dac_Channel1, .Mode = 0, .Trigger = Dac_Trigger_Disabled, .Wave = Dac_Wave_Disabled};
+    dtBasicTimConfig config = {.MasterMode = 0, .AutoReload = 800, .Prescaler = 99, .ARPreload = 1, .UpdateDisable = 0, .UpdateSource = 0, .OnePulse = 0, .Enable = 1};
+    dtGPIOConfig A5Config = {.Type = PushPull, .Speed  = Medium, .PUPD = NoPull, .Mode = Output};
+    dtGPIOConfig B13Config = {.Type = PushPull, .Speed  = Medium, .PUPD = NoPull, .Mode = Output};
+    dtGPIOConfig C13Config = {.Type = PushPull, .Speed  = Medium, .PUPD = NoPull, .Mode = Input};
+    RCC_ClockSet(RCCConf);
+
+    GPIO_PinInit(PortA_5, A5Config);
+    GPIO_PinInit(PortB_13, B13Config);
+    GPIO_PinInit(PortC_13, C13Config);
+
+    GPIO_Set(PortA_5, Set);
+    GPIO_Set(PortB_13, Set);
+    GPIO_Set(PortB_13, Toggle);
+
+    BasicTIM_Set(TIM7, config, SysTick_Inc);
+
+    DAC_Init(Config);
+    SineGen_Init();
+
+    dtMelody StarWarsMelody = {.Length = sizeof(StarWarsMainTheme)/sizeof(dtMusicNoteDesc), .beat = 108, .Notes = StarWarsMainTheme};
+    dtMelody CoffinDanceMelody = {.Length = sizeof(CoffinDance)/sizeof(dtMusicNoteDesc), .beat = 127, .Notes = CoffinDance};
+    MelodyPlayer_Start(CoffinDanceMelody);
+
     /* Loop forever */
-	for(;;);
+	for(;;)
+	{
+	    MelodyPlayer_Task();
+	}
 }
