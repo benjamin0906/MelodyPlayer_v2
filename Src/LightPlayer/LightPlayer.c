@@ -16,14 +16,17 @@ void LightPlayer_NoteStop(void);
 
 void LightPlayer_NoteStart(uint8 Note)
 {
-    if(PrevNote != Note)
+    if(Note != 0)
     {
-        PrevNote = Note;
-        if(Led == 0) Led = 1;
-        else Led = 0;
+        if(PrevNote != Note)
+        {
+            PrevNote = Note;
+            if(Led == 0) Led = 1;
+            else Led = 0;
+        }
+        if(Led == 0) GPIO_Set(PortA_1, Set);
+        else GPIO_Set(PortA_0, Set);
     }
-    if(Led == 0) GPIO_Set(PortA_1, Set);
-    else GPIO_Set(PortA_0, Set);
 }
 
 void LightPlayer_NoteStop(void)
